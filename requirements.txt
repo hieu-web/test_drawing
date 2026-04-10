@@ -1,0 +1,11 @@
+torch==2.1.0
+torchvision==0.16.0
+--find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+detectron2 @ git+https://github.com/facebookresearch/detectron2.git
+gradio
+opencv-python
+paddleocr
+paddlepaddle
+numpy
+pillow
+pyyaml
