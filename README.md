@@ -106,4 +106,4 @@ Giao diện cho phép:
 - **Optimized Inference**: Chuyển đổi mô hình sang định dạng ONNX hoặc TensorRT để tăng tốc độ inference lên gấp 3-5 lần.
 
 ---
-*Dự án được thực hiện bởi Antigravity AI Assistant.*
+
