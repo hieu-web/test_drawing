@@ -32,6 +32,81 @@ class DrawingProcessor:
             self.ocr = PaddleOCR(use_angle_cls=True, lang='en', use_gpu=False, show_log=False)
         return self.ocr
 
+    def calculate_iou(self, boxA, boxB):
+        # box format: x1, y1, x2, y2
+        xA = max(boxA[0], boxB[0])
+        yA = max(boxA[1], boxB[1])
+        xB = min(boxA[2], boxB[2])
+        yB = min(boxA[3], boxB[3])
+        interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+        boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+        boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+        iou = interArea / float(boxAArea + boxBArea - interArea)
+        return iou
+
+    def clean_ocr_text(self, text):
+        if not text:
+            return ""
+        # Loại bỏ các ký tự rác phổ biến ở đầu/cuối
+        text = text.strip()
+        # Chuyển đổi các lỗi phổ biến (VD: O -> 0 trong chuỗi số)
+        # Đây là ví dụ đơn giản, có thể mở rộng thêm regex chuyên sâu
+        return text
+
+    def postprocess_objects(self, objects, iou_threshold=0.5, containment_threshold=0.8):
+        if not objects:
+            return []
+            
+        # 1. Sắp xếp theo diện tích (Area) từ lớn đến nhỏ để ưu tiên các khung bao quát
+        for obj in objects:
+            b = obj["bbox"]
+            obj["area"] = (b["x2"] - b["x1"]) * (b["y2"] - b["y1"])
+            
+        objects = sorted(objects, key=lambda x: x["area"], reverse=True)
+        keep = []
+        
+        while len(objects) > 0:
+            current = objects.pop(0)
+            is_redundant = False
+            
+            for saved in keep:
+                boxA = [current["bbox"]["x1"], current["bbox"]["y1"], current["bbox"]["x2"], current["bbox"]["y2"]]
+                boxB = [saved["bbox"]["x1"], saved["bbox"]["y1"], saved["bbox"]["x2"], saved["bbox"]["y2"]]
+                
+                iou = self.calculate_iou(boxA, boxB)
+                
+                # Tính độ chứa đựng (Containment): current nằm trong saved bao nhiêu %
+                xA = max(boxA[0], boxB[0])
+                yA = max(boxA[1], boxB[1])
+                xB = min(boxA[2], boxB[2])
+                yB = min(boxA[3], boxB[3])
+                interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+                containment = interArea / float(current["area"]) if current["area"] > 0 else 0
+
+                # Điều kiện loại bỏ:
+                # 1. Trùng lặp IOU cao (cùng class)
+                if current["class"] == saved["class"] and iou > iou_threshold:
+                    is_redundant = True
+                    break
+                
+                # 2. Box hiện tại nằm lọt thỏm trong một box khác đã lưu (Containment cao)
+                if containment > containment_threshold:
+                    is_redundant = True
+                    break
+                    
+            if not is_redundant:
+                keep.append(current)
+            
+        # 2. Làm sạch văn bản OCR
+        for obj in keep:
+            obj["ocr_content"] = self.clean_ocr_text(obj["ocr_content"])
+            
+        # 3. Đánh lại ID
+        for i, obj in enumerate(keep):
+            obj["id"] = i + 1
+            
+        return keep
+
     def process_image(self, im):
         if self.predictor is None or im is None:
             return {"error": "Model or Image error"}, None
@@ -73,6 +148,9 @@ class DrawingProcessor:
                 "bbox": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
                 "ocr_content": ocr_content
             })
+            
+        # Áp dụng Post-processing
+        objects = self.postprocess_objects(objects)
             
         return {"objects": objects}, self.draw_viz(im, objects)
 
