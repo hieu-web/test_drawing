@@ -79,7 +79,7 @@ Giao diện cho phép:
 ---
 
 ## 📦 Model Weights & Demo
-- **Model Weights**: [Google Drive Link](https://drive.google.com/file/d/1hGeQ75RmGPqg8tSi7_MOtYrqaQWoNloG/view?usp=sharing) hoặc [HuggingFace Space](https://huggingface.co/spaces/hieu098/hieu1234/resolve/main/model_final.pth).
+- **Model Weights**: [Google Drive Link](https://drive.google.com/file/d/1hGeQ75RmGPqg8tSi7_MOtYrqaQWoNloG/view?usp=sharing)
 - **Web Demo URL**: [https://huggingface.co/spaces/hieu098/hieu1234](https://huggingface.co/spaces/hieu098/hieu1234)
 
 ---
